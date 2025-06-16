@@ -34,15 +34,24 @@ const whitelist = [
   'https://frooxi.com',
   'https://www.frooxi.com',
   'https://frooxi-backend.onrender.com',
+  'https://frooxi-website.onrender.com', // Add your production frontend URL
 ].filter(Boolean);
+
+console.log('CORS Whitelist:', whitelist);
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    console.log('Incoming request from origin:', origin);
     
-    // Check if origin is in whitelist
-    if (whitelist.indexOf(origin) !== -1) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      console.log('No origin, allowing request');
+      return callback(null, true);
+    }
+    
+    // Check if origin is in whitelist (exact match)
+    if (whitelist.includes(origin)) {
+      console.log('✅ Origin allowed (exact match):', origin);
       return callback(null, true);
     }
     
@@ -50,25 +59,53 @@ const corsOptions = {
     const originDomain = origin.replace(/^https?:\/\//, '').split('/')[0];
     const isWhitelisted = whitelist.some(domain => {
       const domainName = domain.replace(/^https?:\/\//, '').split('/')[0];
+      // Check if the origin is a subdomain or exact match of the whitelisted domain
       return originDomain === domainName || originDomain.endsWith(`.${domainName}`);
     });
-    
+
     if (isWhitelisted) {
+      console.log(`✅ Origin allowed (subdomain match): ${origin} matches whitelist`);
       return callback(null, true);
     }
-    
-    console.error('CORS Error - Origin not allowed:', origin);
-    callback(new Error('Not allowed by CORS'));
+
+    console.log(`❌ Origin not allowed: ${origin}`);
+    console.log('Whitelisted domains:', whitelist);
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept',
+    'X-Access-Token',
+    'X-Refresh-Token'
+  ],
+  exposedHeaders: [
+    'Authorization',
+    'X-Access-Token',
+    'X-Refresh-Token'
+  ],
+  maxAge: 600, // Cache preflight request for 10 minutes
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
-// Middleware
+// Apply CORS middleware
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
+
+// Log all incoming requests for debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  console.log('Headers:', req.headers);
+  next();
+});
+
+// Parse JSON and URL-encoded bodies with increased limit
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
 app.use('/api/users', userRoutes);
