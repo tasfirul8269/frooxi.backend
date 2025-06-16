@@ -28,9 +28,22 @@ cloudinary.v2.config({
 });
 
 // CORS configuration
+const whitelist = [
+  'http://localhost:8080',
+  'http://localhost:3000',
+  'https://yournamecheapdomain.com',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 const corsOptions = {
-  origin: 'http://localhost:8080', // Your frontend URL
-  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+  origin: function (origin, callback) {
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 };
