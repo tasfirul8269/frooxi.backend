@@ -9,26 +9,59 @@ const MONGODB_URI = 'mongodb+srv://frooxidb:TTFMUP24@frooxidb.rwb3ajp.mongodb.ne
 
 async function createAdmin() {
   try {
+    console.log('Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
-    const existing = await User.findOne({ email: 'adef05675@gmail.com' });
+    console.log('Connected to MongoDB');
+    
+    const email = 'adef05675@gmail.com';
+    const password = '12345678';
+    
+    console.log('Checking for existing admin user...');
+    const existing = await User.findOne({ email });
+    
     if (existing) {
-      console.log('Admin user already exists.');
+      console.log('Admin user already exists. Verifying password...');
+      // Verify the existing user's password
+      const isMatch = await bcrypt.compare(password, existing.password);
+      if (isMatch) {
+        console.log('Admin user exists and password is correct.');
+      } else {
+        console.log('Admin user exists but password is incorrect. Updating password...');
+        const newPasswordHash = await bcrypt.hash(password, 10);
+        existing.password = newPasswordHash;
+        await existing.save();
+        console.log('Admin user password updated successfully!');
+      }
       process.exit(0);
     }
-    const passwordHash = await bcrypt.hash('12345678', 10);
-    await User.create({
+    
+    console.log('Creating new admin user...');
+    const passwordHash = await bcrypt.hash(password, 10);
+    const adminUser = await User.create({
       name: 'Admin',
       username: 'admin',
-      email: 'adef05675@gmail.com',
+      email: email,
       password: passwordHash,
       isAdmin: true
     });
+    
     console.log('Admin user created successfully!');
+    console.log('Email:', adminUser.email);
+    console.log('Password:', password); // Only for debugging, remove in production
+    
+    // Verify the password was hashed correctly
+    const isMatch = await bcrypt.compare(password, adminUser.password);
+    console.log('Password verification:', isMatch ? 'SUCCESS' : 'FAILED');
+    
     process.exit(0);
   } catch (err) {
-    console.error('Error creating admin user:', err);
+    console.error('Error in createAdmin:', {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
     process.exit(1);
   }
 }
 
-createAdmin(); 
+createAdmin();
