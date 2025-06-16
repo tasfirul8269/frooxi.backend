@@ -31,8 +31,8 @@ cloudinary.v2.config({
 const whitelist = [
   'http://localhost:8080',
   'http://localhost:3000',
-  'https://yournamecheapdomain.com',
-  process.env.FRONTEND_URL
+  'https://frooxi.com',
+  'https://www.frooxi.com'
 ].filter(Boolean);
 
 const corsOptions = {
