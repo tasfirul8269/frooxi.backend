@@ -31,70 +31,37 @@ cloudinary.v2.config({
 const whitelist = [
   'http://localhost:8080',
   'http://localhost:3000',
+  'http://localhost:5173',
   'https://frooxi.com',
   'https://www.frooxi.com',
-  'https://frooxi-backend.onrender.com',
-  'https://frooxi-website.onrender.com', // Add your production frontend URL
+  'https://frooxi-backend.onrender.com'
+
 ].filter(Boolean);
 
 console.log('CORS Whitelist:', whitelist);
 
-const corsOptions = {
+// Enable CORS with specific options
+app.use(cors({
   origin: function (origin, callback) {
-    console.log('Incoming request from origin:', origin);
-    
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      console.log('No origin, allowing request');
-      return callback(null, true);
-    }
+    if (!origin) return callback(null, true);
     
-    // Check if origin is in whitelist (exact match)
-    if (whitelist.includes(origin)) {
-      console.log('✅ Origin allowed (exact match):', origin);
-      return callback(null, true);
+    // Check if origin is in whitelist
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
-    
-    // Check if origin is a subdomain of whitelisted domains
-    const originDomain = origin.replace(/^https?:\/\//, '').split('/')[0];
-    const isWhitelisted = whitelist.some(domain => {
-      const domainName = domain.replace(/^https?:\/\//, '').split('/')[0];
-      // Check if the origin is a subdomain or exact match of the whitelisted domain
-      return originDomain === domainName || originDomain.endsWith(`.${domainName}`);
-    });
-
-    if (isWhitelisted) {
-      console.log(`✅ Origin allowed (subdomain match): ${origin} matches whitelist`);
-      return callback(null, true);
-    }
-
-    console.log(`❌ Origin not allowed: ${origin}`);
-    console.log('Whitelisted domains:', whitelist);
-    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With', 
-    'Accept',
-    'X-Access-Token',
-    'X-Refresh-Token'
-  ],
-  exposedHeaders: [
-    'Authorization',
-    'X-Access-Token',
-    'X-Refresh-Token'
-  ],
-  maxAge: 600, // Cache preflight request for 10 minutes
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Authorization'],
+  maxAge: 600
+}));
 
-// Apply CORS middleware
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
+// Handle preflight requests
+app.options('*', cors());
 
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
