@@ -32,7 +32,8 @@ const whitelist = [
   'http://localhost:8080',
   'http://localhost:3000',
   'https://frooxi.com',
-  'https://www.frooxi.com'
+  'https://www.frooxi.com',
+  'https://frooxi-backend.onrender.com'
 ].filter(Boolean);
 
 const corsOptions = {
