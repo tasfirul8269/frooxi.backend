@@ -33,16 +33,32 @@ const whitelist = [
   'http://localhost:3000',
   'https://frooxi.com',
   'https://www.frooxi.com',
-  'https://frooxi-backend.onrender.com'
+  'https://frooxi-backend.onrender.com',
 ].filter(Boolean);
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || whitelist.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in whitelist
+    if (whitelist.indexOf(origin) !== -1) {
+      return callback(null, true);
     }
+    
+    // Check if origin is a subdomain of whitelisted domains
+    const originDomain = origin.replace(/^https?:\/\//, '').split('/')[0];
+    const isWhitelisted = whitelist.some(domain => {
+      const domainName = domain.replace(/^https?:\/\//, '').split('/')[0];
+      return originDomain === domainName || originDomain.endsWith(`.${domainName}`);
+    });
+    
+    if (isWhitelisted) {
+      return callback(null, true);
+    }
+    
+    console.error('CORS Error - Origin not allowed:', origin);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
