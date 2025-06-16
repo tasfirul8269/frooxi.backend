@@ -5,7 +5,7 @@ import User from '../models/User.js';
 
 dotenv.config();
 
-const MONGODB_URI = 'mongodb+srv://frooxidb:TTFMUP24@frooxidb.rwb3ajp.mongodb.net/?retryWrites=true&w=majority&appName=FrooxiDB';
+const MONGODB_URI = 'mongodb+srv://frooxidb:TTFMUP24@frooxidb.rwb3ajp.mongodb.net/frooxiDB?retryWrites=true&w=majority&appName=FrooxiDB';
 
 async function createAdmin() {
   try {
