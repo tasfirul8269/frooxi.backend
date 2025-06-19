@@ -13,6 +13,7 @@ import testimonialRoutes from './routes/testimonialRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
+import consultationRoutes from './routes/consultationRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -35,33 +36,36 @@ const whitelist = [
   'https://frooxi.com',
   'https://www.frooxi.com',
   'https://frooxi-backend.onrender.com'
-
-].filter(Boolean);
+];
 
 console.log('CORS Whitelist:', whitelist);
 
-// Enable CORS with specific options
-app.use(cors({
+// CORS options
+const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Check if origin is in whitelist
-    if (whitelist.indexOf(origin) !== -1) {
+    // Check if origin is in whitelist or is from the same domain
+    if (whitelist.indexOf(origin) !== -1 || whitelist.some(domain => origin.endsWith(domain))) {
       callback(null, true);
     } else {
+      console.error('CORS Error: Origin not allowed -', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'x-auth-token'],
+  exposedHeaders: ['Authorization', 'x-auth-token'],
   maxAge: 600
-}));
+};
+
+// Enable CORS
+app.use(cors(corsOptions));
 
 // Handle preflight requests
-app.options('*', cors());
+app.options('*', cors(corsOptions));
 
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
@@ -74,7 +78,7 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Routes
+// Mount API routes
 app.use('/api/users', userRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
@@ -83,6 +87,7 @@ app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/consultations', consultationRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
