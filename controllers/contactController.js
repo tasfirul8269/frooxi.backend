@@ -29,7 +29,12 @@ export const submitContactForm = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Your message has been sent successfully!',
-      data: contact
+      data: {
+        name,
+        email,
+        subject,
+        message
+      }
     });
   } catch (err) {
     console.error('Error submitting contact form:', err);
@@ -147,7 +152,12 @@ export const getContact = async (req, res) => {
     
     res.json({
       success: true,
-      data: contact
+      data: {
+        name: contact.name,
+        email: contact.email,
+        subject: contact.subject,
+        message: contact.message
+      }
     });
   } catch (err) {
     console.error('Error fetching contact:', err);
@@ -204,7 +214,12 @@ export const toggleReadStatus = async (req, res) => {
     
     res.json({
       success: true,
-      data: contact
+      data: {
+        name: contact.name,
+        email: contact.email,
+        subject: contact.subject,
+        message: contact.message
+      }
     });
   } catch (err) {
     console.error('Error toggling read status:', err);

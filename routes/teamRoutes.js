@@ -9,6 +9,7 @@ import {
 import { auth } from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
 import upload from '../utils/uploadMiddleware.js';
+import { validateFileContent, sanitizeFilename } from '../src/middleware/uploadSecurity.js';
 
 const router = express.Router();
 
@@ -17,8 +18,8 @@ router.get('/', getTeamMembers);
 router.get('/:id', getTeamMember);
 
 // Protected routes
-router.post('/', auth, adminAuth, upload.single('image'), createTeamMember);
-router.put('/:id', auth, adminAuth, upload.single('image'), updateTeamMember);
+router.post('/', auth, adminAuth, upload.single('image'), validateFileContent, sanitizeFilename, createTeamMember);
+router.put('/:id', auth, adminAuth, upload.single('image'), validateFileContent, sanitizeFilename, updateTeamMember);
 router.delete('/:id', auth, adminAuth, deleteTeamMember);
 
 export default router; 

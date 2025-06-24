@@ -191,7 +191,11 @@ export const getUserProfile = async (req, res) => {
     
     res.json({
       success: true,
-      user
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      token: undefined
     });
     
   } catch (err) {

@@ -3,6 +3,14 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import cloudinary from 'cloudinary';
+import helmet from 'helmet';
+import { securityHeaders, cspReportUri, cspReportHandler } from './src/middleware/securityHeaders.js';
+import cookieParser from 'cookie-parser';
+import { generateCSRFToken, verifyCSRFToken } from './src/middleware/authMiddleware.js';
+import rateLimit from 'express-rate-limit';
+import hpp from 'hpp';
+import winston from 'winston';
+import apiKeyAuth from './middleware/apiKeyAuth.js';
 
 // Import routes
 import userRoutes from './routes/userRoutes.js';
@@ -37,6 +45,12 @@ const whitelist = [
   'https://www.frooxi.com',
   'https://frooxi-backend.onrender.com'
 ];
+
+console.log = () => {};
+console.error = () => {};
+console.warn = () => {};
+console.info = () => {};
+console.debug = () => {};
 
 console.log('CORS Whitelist:', whitelist);
 
@@ -77,6 +91,78 @@ app.use((req, res, next) => {
 // Parse JSON and URL-encoded bodies with increased limit
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Enable Helmet for basic security
+app.use(helmet());
+// Custom security headers
+app.use(securityHeaders);
+
+// Trust first proxy (for secure cookies, etc.)
+app.set('trust proxy', 1);
+// CSP violation report endpoint
+app.use(express.json({ limit: '10kb' }));
+app.post(cspReportUri, cspReportHandler);
+
+// Parse cookies for CSRF protection
+app.use(cookieParser());
+// Generate CSRF token for all authenticated sessions
+app.use(generateCSRFToken);
+// Require CSRF token verification on all state-changing routes
+app.use((req, res, next) => {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    return verifyCSRFToken(req, res, next);
+  }
+  next();
+});
+
+// HTTP Parameter Pollution protection
+app.use(hpp());
+// Rate limiting for login and register endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: 'Too many login attempts, please try again after 15 minutes',
+  skipSuccessfulRequests: true
+});
+app.use('/api/users/login', authLimiter);
+app.use('/api/users/register', authLimiter);
+// Rate limiting for upload endpoints
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many uploads from this IP, please try again later.'
+});
+app.use('/api/portfolio', uploadLimiter);
+app.use('/api/team', uploadLimiter);
+// Winston logger for audit logging
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.File({ filename: 'audit.log' })
+  ]
+});
+// Audit log middleware for sensitive actions
+app.use((req, res, next) => {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    logger.info({
+      time: new Date().toISOString(),
+      method: req.method,
+      url: req.originalUrl,
+      user: req.user ? req.user._id : null,
+      ip: req.ip
+    });
+  }
+  next();
+});
+// Placeholder for malware scanning middleware (to be implemented with ClamAV)
+const malwareScan = (req, res, next) => {
+  // TODO: Integrate ClamAV or similar here
+  next();
+};
+
+// Apply API key auth to all API routes
+app.use('/api', apiKeyAuth);
 
 // Mount API routes
 app.use('/api/users', userRoutes);
